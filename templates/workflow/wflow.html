@@ -1,0 +1,282 @@
+{% extends "common.html" %}
+{% block content %}
+<script type="text/javascript">mxBasePath = '/static/mxgraph-js/javascript/src'</script>
+<script type="text/javascript" src="/static/mxgraph-js/javascript/src/js/mxClient.js"></script>
+<!-- -----------------------------------------------------------------------------
+    STYLE
+------------------------------------------------------------------------------- -->
+<style>
+.toolbarimg{
+    width: 32px;
+    padding: 4px;;
+}
+.tbdiv{
+    padding: 10px;
+    margin:  10px;
+    border: 1px solid black;
+    background-color: white;
+    border-radius: 6px;;
+    text-align: center;
+}
+.editDiv{
+    padding: 4;
+    margin:  3px;
+    border: 1px solid black;
+    background-color:aliceblue;
+    border-radius: 3px;;
+    text-align: left;
+    font-size: smaller;
+    min-height:200px;
+    font-family: 'Courier New', Courier, monospace;
+}
+</style>
+<!-- -----------------------------------------------------------------------------
+    HTML
+------------------------------------------------------------------------------- -->
+<div style="background-color: aliceblue; padding: 10px; border-bottom: 1px solid gray;">
+    <h5 style="display: inline;">  Create/Edit Workflows  ( NEW Experimental !!! ) <i class="fa fa-flask"></i>
+    </h5>
+    &nbsp;&nbsp;&nbsp;<button class="btn btn-danger btn-sm" style="" onclick="runWF()"  > RUN THIS WF</button> 
+    &nbsp;<button class="btn btn-info btn-sm" onclick="saveWF()"  > Save WF As:</button> 
+    <div class="div1" style="display: inline-block;">
+        <input class="input1" id="wf_saveas" size=16 placeholder="save as" value="{{user.username}}.xml" required>
+    </div>
+    &nbsp;<button class="btn btn-danger btn-sm" onclick="deleteWF()"  > Delete WF As:</button> 
+
+</div>
+<div class="row" style ="width: 100%; height: 90%; padding: 0px;margin: auto;" >
+    <div id=graph class="col-md-9">
+    </div>
+
+    <div class="col-md-3" style="height: 100%; overflow: auto;background-color:gainsboro; text-align: center;"> 
+        <button class="btn btn-primary"  onclick="_graph.zoomIn()"    ><i class="fa fa-search-plus"></i></button>
+        <button class="btn btn-success"  onclick="_graph.zoomOut()"   ><i class="fa fa-search-minus"></i></button>
+        <button class="btn btn-success"  onclick="_graph.fit();"      ><i class="fa fa-eye"></i></button> 
+        <button class="btn btn-danger"  onclick="graph.zoomActual()" ><i class="fa fa-eye"></i></button> 
+        <hr/>
+        <div id="toolbar" class="tbdiv"></div>
+        <hr/>
+        
+        
+        
+        <b>Configure Workflow Item </b><br/>
+        <input class="input1"  onblur="mxcell_Update()" id="mxcell_value" >  
+        <div   class="editDiv" onblur="mxcell_Update()" id="mxcell_config"   contentEditable>
+            #Ex: <br/>/bin/runModel -ls<br/>#--------------<br/>
+        </div>
+        <!-- <button class="btn btn-primary btn-sm"  onclick="mxcell_Update()"  >Update Item</button>  -->
+
+
+
+
+        <hr/>
+        Saved Workflows:
+        <div id="wflist" class="" style="background-color: aliceblue; height:240; overflow-y: auto;"></div>
+        <br/>
+        <br/>
+    </div>
+</div>
+<div id="status" class="base" align="right" style="white-space:nowrap;background-color: aliceblue; border: 1px solid black;">
+    <!-- Status Here -->
+</div>
+{% include "workflow/wflowjs.html" %}
+
+<!-- -----------------------------------------------------------------------------
+    SCRIPT
+
+ * This assumes you have a service working
+------------------------------------------------------------------------------- -->
+<script>
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+var _overlay_run = new mxCellOverlay(new mxImage('/static/imgs/gear.gif', 24, 24),'?');
+var _overlay_end = new mxCellOverlay(new mxImage('/static/imgs/check.png', 24, 24),'?');
+var _overlay_err = new mxCellOverlay(new mxImage('/static/imgs/error.png', 24, 24),'?');
+
+function createOverlay(state){
+    var html = (state.startsWith("r")) ? "<h1>R<h1>": "FINI";
+
+    var overlay = new mxCellOverlay(_overlay, state);
+
+    // overlay.addListener(mxEvent.CLICK, function(sender, evt){
+    //     mxUtils.alert(tooltip + '\nLast update: ' + new Date());
+    // });    
+    return overlay;
+};
+
+function setCellState(cell=null, id=null, state="running") {
+    cell = (!cell) ? _model.getCell(id): cell
+    if (!cell ) {
+        console.log("Cell not found: ", id)
+        return
+    }
+    if ( !cell.vertex) {
+        //console.log("Cell not vertex: ", cell)
+        return
+    }
+
+    var s = state[0].toLowerCase()
+    console.log("Cell State: ", s)
+    switch (s) {
+        case "r": //Running
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#f8cecc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_run);
+            break
+        case "w": //waiting
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff2cc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_err);
+            break
+        case "c": // Completed
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        default:
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            break
+    }
+}
+function runWF() {
+    var i = 0
+    for (var c in _graph.model.cells) {
+        var c1 = _graph.model.cells[c]
+        console.log("Running ", c1)
+        setTimeout(setCellState, i*2000, c1)
+        setTimeout(setCellState, i*4000, c1, null, (i%2 ==0) ? "completed": "w")
+        i++
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadWF() {
+    //var vertexStyle = _graph.getStylesheet().getDefaultVertexStyle();
+    //vertexStyle[mxConstants.ROUNDED] = true;
+    _model.beginUpdate();
+    try
+    {
+        var v1 = _graph.insertVertex(_parent, null, "Start", 20, 20, 80, 40)
+        var v2 = _graph.insertVertex(_parent, null, 'Process Data!', 170, 200, 120, 40);
+        var v3 = _graph.insertVertex(_parent, null, 'Build Model!', 400, 20, 120, 40);
+        var v4 = _graph.insertVertex(_parent, null, 'Send Email!', 550, 200, 120, 40);
+        var e1 = _graph.insertEdge(_parent, null, '', v1, v2);
+        var e1 = _graph.insertEdge(_parent, null, '', v3, v4);
+        var e1 = _graph.insertEdge(_parent, null, '', v1, v4);
+    }
+    finally{
+        _model.endUpdate();
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+async function loadWFCfgXML(xml= null) {
+    if ( !xml)
+        return
+
+    graph.selectCells('*')
+    await graph.removeCells()
+        
+    var doc = mxUtils.parseXml(xml);
+    var codec = new mxCodec(doc);
+    codec.decode(doc.documentElement, graph.getModel());
+}
+
+function saveWF() {
+    var encoder = new mxCodec();
+    var node = encoder.encode(graph.getModel());
+    var xml = mxUtils.getPrettyXml(node)
+
+    var name = $('#wf_saveas').val()
+    var ctx = { name: name, jsn: "", xml: xml }
+    callws('/wf/save_wf/',"", loadAllWFs, ctx)
+
+    return xml
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let _MXCELL_SELECTED = null;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function mxcell_Update() {
+    var c = _MXCELL_SELECTED
+    var v = $('#mxcell_value').val()
+    var t = $('#mxcell_config').text()
+
+    c.value = v
+    c.text  = t
+    console.log(c)
+    graph.refresh()
+}
+
+function cellSelectMousehandler(obj,evt){
+    //console.log("??", obj, evt)
+    evt.consume()
+    if ( !obj || evt.name !== "change" || !obj.cells || obj.cells.length <=0 || obj.cells.length > 1) {
+        return 
+    }
+    var c = obj.cells[0]
+    console.log("CONSUMING ", c.value, c.id)
+
+    $('#mxcell_value').val(c.value)
+    $('#mxcell_config').html(c.text|| "")
+    _MXCELL_SELECTED = c
+}
+</script>
+
+
+<script>
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function deleteWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    loadAllWFs()
+}
+function deleteWF() {
+    var name = $('#wf_saveas').val()
+    console.log("Deleting ", name)
+    callws('/wf/delete_wf/',"", deleteWFCB, {name: name})
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadAWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    var j = JSON.parse(responseTxt)
+    loadWFCfgXML(j.xml)
+}
+function loadAWF(name) {
+    console.log("Loading ", name)
+    callws('/wf/get_wf/',"", loadAWFCB, {name: name})
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadAllWFsCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    var ds   = JSON.parse(responseTxt);
+    var vals = ds.values;
+    showDataTable(ds, 
+        {   div: '#wflist', id: 'wflistTable', 
+            maxitems: 5000, fillHeight: 0,
+            tableclass: "none", editable:0, allowDelete: 0, allowAdd: 0,
+            rowSelectCB: function(table, tr, indx, curSelected, vals) {
+                if ( curSelected < 0) {
+                    return
+                }
+                var name = tr.getElementsByTagName('td')[0].innerText
+                loadAWF(name)
+                $('#wf_saveas').val(name)
+            }})
+
+    $('#tabs').tabs( "option", "heightStyle", "fill" )
+}
+function loadAllWFs() {
+    callws('/wf/getall_wfs/',"", loadAllWFsCB, {})
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+$(document).ready(function() {
+    if (!mxClient.isBrowserSupported()) {
+        mxUtils.error('Browser is not supported!', 200, false);
+    } else {
+        createGraph()
+        loadWF()
+        toolbar()
+        graph.getSelectionModel().addListener(mxEvent.CHANGE, cellSelectMousehandler)
+        loadAllWFs()
+    }
+})
+
+
+</script>
+
+{% endblock %}

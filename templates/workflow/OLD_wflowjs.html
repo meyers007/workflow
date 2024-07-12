@@ -1,0 +1,228 @@
+<!-- -----------------------------------------------------------------------------
+    SCRIPT
+
+ * This assumes you have a service working
+------------------------------------------------------------------------------- -->
+<script>
+var _model     = new mxGraphModel();
+var _container = null
+var _graph     = null
+var graph      = null
+var _parent    = null
+/**
+ * Creates and returns an empty graph inside the given container.
+ */
+function createGraph(id="graph", editor=null){
+    if (!mxClient.isBrowserSupported())
+    {
+            // Displays an error message if the browser is not supported.
+            mxUtils.error('Browser is not supported!', 200, false);
+    }
+    _model     = new mxGraphModel();
+    _container = document.getElementById(id, 6,6);
+    if (editor) {
+        console.log("EDITOR ....")
+        //_graph     = editor.graph
+        _graph     = new mxGraph(_container, _model);
+        _graph.editor = editor; //.graph._container = _graph
+    } else {
+        _graph     = new mxGraph(_container, _model);
+
+    }
+    graph      = _graph
+    _parent    = _graph.getDefaultParent();
+
+    _graph.dropEnabled = true;      // Enables new connections in the graph
+    _graph.setConnectable(true);
+    _graph.setMultigraph(true);
+    mxConnectionHandler.prototype.connectImage = new mxImage('/static/imgs/add.png', 8,8);
+    mxConstants.DEFAULT_HOTSPOT = 1;
+    mxConstants.HIGHLIGHT_COLOR = null;
+
+    mxGraph.prototype.htmlLabels = true;
+    mxGraph.prototype.isWrapping = function(cell) { return true; };
+    mxGraphHandler.prototype.guidesEnabled = true;
+    mxGuide.prototype.isEnabledForEvent = function(evt) { return !mxEvent.isAltDown(evt);    };
+
+    // Enables snapping waypoints to terminals
+    mxEdgeHandler.prototype.snapToTerminals = true;
+    mxConnectionHandler.prototype.waypointsEnabled = true
+
+    _graph.alternateEdgeStyle = 'elbow=vertical';
+
+    var style = graph.getStylesheet().getDefaultVertexStyle();
+    style[mxConstants.STYLE_FONTSIZE]      = 14;
+    style[mxConstants.STYLE_FONTCOLOR]     = 'black';
+    style[mxConstants.STYLE_STROKECOLOR]   = '#808080'
+    style[mxConstants.STYLE_FILLCOLOR]     = '#fff'
+    style[mxConstants.STYLE_GRADIENTCOLOR] = 'white';
+    style[mxConstants.STYLE_SHADOW]        = true;
+    style[mxConstants.STYLE_FONTSTYLE]     = 1;
+    style[mxConstants.STYLE_ROUNDED]       = true;
+    style[mxConstants.STYLE_EDGE]          = mxEdgeStyle.ElbowConnector;
+    style[mxConstants.STYLE_]              = mxEdgeStyle.ElbowConnector;
+    style[mxConstants.STYLE_STROKEWIDTH]   = 1
+    style[mxConstants.STYLE_GRADIENT_DIRECTION] = mxConstants.DIRECTION_EAST;
+
+
+    var style = graph.getStylesheet().getDefaultEdgeStyle();
+    style[mxConstants.STYLE_ROUNDED]     = true;
+    style[mxConstants.STYLE_EDGE]        = mxEdgeStyle.ElbowConnector;
+    style[mxConstants.STYLE_STROKECOLOR] = '#808080'
+    style[mxConstants.STYLE_STROKEWIDTH] = 1
+
+
+    style = [];
+    style[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_SWIMLANE;
+    style[mxConstants.STYLE_PERIMETER] = mxPerimeter.RectanglePerimeter;
+    style[mxConstants.STYLE_STROKECOLOR] = '#a0a0a0';
+    style[mxConstants.STYLE_FONTCOLOR] = '#606060';
+    style[mxConstants.STYLE_FILLCOLOR] = '#E0E0DF';
+    style[mxConstants.STYLE_GRADIENTCOLOR] = 'white';
+    style[mxConstants.STYLE_STARTSIZE] = 30;
+    style[mxConstants.STYLE_ROUNDED] = false;
+    style[mxConstants.STYLE_FONTSIZE] = 12;
+    style[mxConstants.STYLE_FONTSTYLE] = 0;
+    style[mxConstants.STYLE_HORIZONTAL] = false;
+    // To improve text quality for vertical labels in some old IE versions...
+    style[mxConstants.STYLE_LABEL_BACKGROUNDCOLOR] = '#efefef';
+    graph.getStylesheet().putCellStyle('swimlane', style);
+
+    style = [];
+    style[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_RHOMBUS;
+    style[mxConstants.STYLE_PERIMETER] = mxPerimeter.RhombusPerimeter;
+    style[mxConstants.STYLE_STROKECOLOR] = '#91BCC0';
+    style[mxConstants.STYLE_FONTCOLOR] = 'gray';
+    style[mxConstants.STYLE_FILLCOLOR] = '#91BCC0';
+    style[mxConstants.STYLE_GRADIENTCOLOR] = 'white';
+    style[mxConstants.STYLE_ALIGN] = mxConstants.ALIGN_CENTER;
+    style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_MIDDLE;
+    style[mxConstants.STYLE_FONTSIZE] = 16;
+    graph.getStylesheet().putCellStyle('step', style);
+    
+    style = [];
+    style[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_ELLIPSE;
+    style[mxConstants.STYLE_PERIMETER] = mxPerimeter.EllipsePerimeter;
+    style[mxConstants.STYLE_FONTCOLOR] = 'gray';
+    style[mxConstants.STYLE_FILLCOLOR] = '#A0C88F';
+    style[mxConstants.STYLE_GRADIENTCOLOR] = 'white';
+    style[mxConstants.STYLE_STROKECOLOR] = '#A0C88F';
+    style[mxConstants.STYLE_ALIGN] = mxConstants.ALIGN_CENTER;
+    style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_MIDDLE;
+    style[mxConstants.STYLE_FONTSIZE] = 16;
+    graph.getStylesheet().putCellStyle('start', style);
+    
+    style = mxUtils.clone(style);
+    style[mxConstants.STYLE_FILLCOLOR] = '#DACCBC';
+    style[mxConstants.STYLE_STROKECOLOR] = '#AF7F73';
+    graph.getStylesheet().putCellStyle('end', style);
+
+    graph.setTooltips(true);
+    graph.setEnabled(true);
+    
+    // Disables folding
+    graph.isCellFoldable = function(cell, collapse)
+    {
+        return false;
+    };
+
+    _graph.setPanning(true);
+    mxEvent.disableContextMenu(_container, true);
+    window.onbeforeunload = function() { return mxResources.get('changesLost'); };
+    mxObjectCodec.allowEval = false;
+
+    graph.createPanningManager = function() {
+        var pm = new mxPanningManager(this);
+        pm.border = 30;
+        
+        return pm;
+    };
+    
+    graph.allowAutoPanning = true;
+    graph.timerAutoScroll = true;
+
+    return graph;
+};
+
+
+let keyHandler
+function addKeyHandler(graph) {
+    // Stops editing on enter or escape keypress
+    keyHandler = new mxKeyHandler(graph);
+
+    keyHandler.bindKey(46, (a,b,c)=>{ 
+        console.log(a,b,c)
+        graph.removeCells();
+        return false
+    
+    });
+
+    mxEvent.addMouseWheelListener(function (evt, up){
+        if (!mxEvent.isConsumed(evt))  {
+            (up) ? _graph.zoomIn() : _graph.zoomOut()
+            //mxEvent.consume(evt);
+        }
+    });
+
+}
+
+function toolbar(){
+    var tbContainer = document.getElementById('toolbar');
+    if (!tbContainer) {
+        return
+    }
+    var toolbar = new mxToolbar(tbContainer);
+    toolbar.enabled = false;
+        
+    // Matches DnD inside the graph
+    mxDragSource.prototype.getDropTarget = function(graph, x, y) {
+        var cell = graph.getCellAt(x, y);
+        
+        if (!graph.isValidDropTarget(cell)) {
+            cell = null;
+        }
+        return cell;
+    };
+
+    var rubberband = new mxRubberband(_graph);
+    addKeyHandler(graph)
+
+    var addVertex = function(icon, w, h, style) {
+        var vertex = new mxCell(null, new mxGeometry(0, 0, w, h), style);
+        vertex.setVertex(true);
+    
+        addToolbarItem(_graph, toolbar, vertex, icon);
+    };
+        
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/swimlane.gif',  120, 160, 'shape=swimlane;startSize=40;');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rectangle.gif', 100, 40, '');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rounded.gif',   100, 40, 'shape=rounded');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/ellipse.gif',   40,  40, 'shape=ellipse');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rhombus.gif',   40,  40, 'shape=rhombus');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/triangle.gif',  40,  40, 'shape=triangle');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/cylinder.gif',  40,  40, 'shape=cylinder');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/actor.gif',     30,  40, 'shape=actor');
+}
+
+
+// Function that is executed when the image is dropped on
+// the graph. The cell argument points to the cell under
+// the mousepointer if there is one.
+function addToolbarItem(graph, toolbar, prototype, image) {
+    var funct = function(graph, evt, cell) {
+        graph.stopEditing(false);
+
+        var pt = graph.getPointForEvent(evt);
+        var vertex = graph.getModel().cloneCell(prototype);
+        vertex.geometry.x = pt.x;
+        vertex.geometry.y = pt.y;
+        
+        graph.setSelectionCells(graph.importCells([vertex], 0, 0, cell));
+        console.log("Adding...")
+    }
+    // Creates the image which is used as the drag icon (preview)
+    var img = toolbar.addMode(null, image, funct, image, "toolbarimg");
+    mxUtils.makeDraggable(img, graph, funct);
+}
+</script>
+
