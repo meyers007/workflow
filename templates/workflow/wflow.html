@@ -18,16 +18,35 @@
     border-radius: 6px;;
     text-align: center;
 }
-.editDiv{
-    padding: 4;
-    margin:  3px;
+.configDiv{
+    padding: 2px;
+    margin:  0px;
     border: 1px solid black;
     background-color:aliceblue;
     border-radius: 3px;;
     text-align: left;
     font-size: smaller;
     min-height:200px;
+    width: 100%;
     font-family: 'Courier New', Courier, monospace;
+}
+.flow {
+    stroke-dasharray: 8;
+    animation: dash 0.5s linear;
+    animation-iteration-count: infinite;
+    color: firebrick;
+
+}
+@keyframes dash {
+    to {
+    stroke-dashoffset: -16;
+    }
+}
+
+.simstatus{
+    white-space:nowrap;
+    background-color: aliceblue; 
+    border-top: 1px solid black;
 }
 </style>
 <!-- -----------------------------------------------------------------------------
@@ -36,7 +55,8 @@
 <div style="background-color: aliceblue; padding: 10px; border-bottom: 1px solid gray;">
     <h5 style="display: inline;">  Create/Edit Workflows  ( NEW Experimental !!! ) <i class="fa fa-flask"></i>
     </h5>
-    &nbsp;&nbsp;&nbsp;<button class="btn btn-danger btn-sm" style="" onclick="runWF()"  > RUN THIS WF</button> 
+    &nbsp;&nbsp;&nbsp;<button class="btn btn-success btn-sm" onclick="simulateWF()"  > Simulate WF <i class="fa fa-play"></i></button> 
+    &nbsp;&nbsp;&nbsp;<button class="btn btn-info btn-sm" onclick="runWF()"  > Run WF</button> 
     &nbsp;<button class="btn btn-info btn-sm" onclick="saveWF()"  > Save WF As:</button> 
     <div class="div1" style="display: inline-block;">
         <input class="input1" id="wf_saveas" size=16 placeholder="save as" value="{{user.username}}.xml" required>
@@ -48,7 +68,7 @@
     <div id=graph class="col-md-9">
     </div>
 
-    <div class="col-md-3" style="height: 100%; overflow: auto;background-color:gainsboro; text-align: center;"> 
+    <div class="col-md-3" style="height: 100%; overflow: auto;background-color:gainsboro; text-align: center;padding: 1px;;"> 
         <button class="btn btn-primary"  onclick="_graph.zoomIn()"    ><i class="fa fa-search-plus"></i></button>
         <button class="btn btn-success"  onclick="_graph.zoomOut()"   ><i class="fa fa-search-minus"></i></button>
         <button class="btn btn-success"  onclick="_graph.fit();"      ><i class="fa fa-eye"></i></button> 
@@ -61,10 +81,8 @@
         
         <b>Configure Workflow Item </b><br/>
         <input class="input1"  onblur="mxcell_Update()" id="mxcell_value" >  
-        <div   class="editDiv" onblur="mxcell_Update()" id="mxcell_config"   contentEditable>
-            #Ex: <br/>/bin/runModel -ls<br/>#--------------<br/>
-        </div>
-        <!-- <button class="btn btn-primary btn-sm"  onclick="mxcell_Update()"  >Update Item</button>  -->
+        <textarea   class="configDiv" onblur="mxcell_Update()" id="mxcell_config" ></textarea>
+<!-- <button class="btn btn-primary btn-sm"  onclick="mxcell_Update()"  >Update Item</button>  -->
 
 
 
@@ -76,7 +94,7 @@
         <br/>
     </div>
 </div>
-<div id="status" class="base" align="right" style="white-space:nowrap;background-color: aliceblue; border: 1px solid black;">
+<div id="status" class="simstatus" >
     <!-- Status Here -->
 </div>
 {% include "workflow/wflowjs.html" %}
@@ -102,20 +120,104 @@ function createOverlay(state){
     // });    
     return overlay;
 };
-
+/*
 function setCellState(cell=null, id=null, state="running") {
     cell = (!cell) ? _model.getCell(id): cell
     if (!cell ) {
         console.log("Cell not found: ", id)
         return
     }
-    if ( !cell.vertex) {
-        //console.log("Cell not vertex: ", cell)
-        return
-    }
+    state= (state) ? state: cell.state || ""
 
     var s = state[0].toLowerCase()
     console.log("Cell State: ", s)
+    switch (s) {
+        case "i": //init
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            graph.removeCellOverlays(cell);
+            break
+        case "r": //Running
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#f8cecc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_run);
+            break
+        case "w": //waiting
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff2cc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_err);
+            break
+        case "s": // Completed Succefully
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        case "e": // Completed with Errors
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        default:
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            break
+    }
+}
+function simulateWFOLD() {
+    var i = 0
+    for (var c in _graph.model.cells) {
+        var c1 = _graph.model.cells[c]
+        c1.state = 'i'
+        console.log("Running ", c1)
+        setTimeout(setCellState, i*2000, c1)
+        setTimeout(setCellState, i*4000, c1, null, (i%2 ==0) ? "completed": "w")
+        i++
+    }
+}
+*/
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+function getCellType(cell) {
+    if ( cell.edge){
+        return "edge"
+    }
+    if ( !cell.style) {
+        return "process"
+    }else if ( cell.style.includes("swimlane")){
+        return "swimlane"
+    }else if ( cell.style.includes("ellipse")){
+        return "start/stop"
+    }else if ( cell.style.includes("actor")){
+        return "actor"
+    }else if ( cell.style.includes("rhombus")){
+        return "decision"
+    }
+    return "process"
+}
+function drawEdge(e) {
+    var state = graph.view.getState(e);
+    var rstate= e.state || ""
+
+    if ( rstate.startsWith('r')) {
+        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, 3, [e]);
+        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'firebrick', [e]);
+        //state.shape.node.getElementsByTagName('path')[0].removeAttribute('visibility');
+        //state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke-width', '6');
+        //state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke', 'lightGray');
+        state.shape.node.getElementsByTagName('path')[1].setAttribute('class', 'flow');
+
+    } else {
+        var style = graph.getStylesheet().getDefaultEdgeStyle();
+        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, style[mxConstants.STYLE_STROKEWIDTH], [e]);
+        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, style[mxConstants.STYLE_STROKECOLOR], [e]);
+
+        state.shape.node.getElementsByTagName('path')[1].setAttribute('class', '');
+    }
+}
+function drawProcess(cell) {
+    if ( !cell.state) {
+        cell.state = "init"
+    }
+
+    var s = cell.state[0].toLowerCase()
+    //console.log("Cell State: ", s)
     switch (s) {
         case "r": //Running
             graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#f8cecc', [cell]);
@@ -127,25 +229,153 @@ function setCellState(cell=null, id=null, state="running") {
             graph.removeCellOverlays(cell);
             graph.addCellOverlay(cell, _overlay_err);
             break
-        case "c": // Completed
+        case "s": // Completed Succefully
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        case "e": // Completed with Errors
             graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
             graph.removeCellOverlays(cell);
             graph.addCellOverlay(cell, _overlay_end);
             break
         default:
             graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            graph.removeCellOverlays(cell);
             break
     }
 }
-function runWF() {
-    var i = 0
-    for (var c in _graph.model.cells) {
-        var c1 = _graph.model.cells[c]
-        console.log("Running ", c1)
-        setTimeout(setCellState, i*2000, c1)
-        setTimeout(setCellState, i*4000, c1, null, (i%2 ==0) ? "completed": "w")
-        i++
+function updateCell(cell=null) {
+    var cType = getCellType(cell)
+
+    switch (cType[0]) {
+        case "e": //edge
+            drawEdge(cell)
+            break
+        case "d": //decision
+        case "w": //swimlane
+            break
+        default:
+            drawProcess(cell)
+            break
     }
+}
+
+function getRandom(min=1, max=10) {
+    return Math.round( (Math.random() * (max - min) + min) );
+}
+
+let START_SIM_TIME = new Date()
+let CURR_SIM_TIME = new Date()
+
+function getTimeDiff(s1=START_SIM_TIME, s2=CURR_SIM_TIME){
+    var delta = Math.abs(s2 - s1) / 1000;
+
+    // calculate (and subtract) whole days
+    var days = Math.floor(delta / 86400);
+    delta -= days * 86400;
+
+    // calculate (and subtract) whole hours
+    var hours = Math.floor(delta / 3600) % 24;
+    delta -= hours * 3600;
+
+    // calculate (and subtract) whole minutes
+    var minutes = Math.floor(delta / 60) % 60;
+    delta -= minutes * 60;
+
+    // what's left is seconds
+    var seconds = delta % 60;  // in theory the mod
+
+    return `${hours} hours, ${minutes} mins,  ${seconds} seconds`
+}
+
+function endSimulatingRun(cell) {
+    var config
+    try {
+        eval("config = " + cell.config)
+    }catch(error) {
+        salert(error)
+        return
+    }
+    cell.state = "success"
+    updateCell(cell)
+    for ( var e in cell.edges) {
+        var E = cell.edges[e]
+        E.state = ""    
+        updateCell(E)
+        if ( E.target != cell){
+            startSimulatingRun(E.target)
+        }
+    }
+    // tell the other end of the edge to start running & I am done
+    CURR_SIM_TIME = new Date();
+    $('#status').html("<b>Simulation Running for : </b>" + getTimeDiff() )
+}
+
+function startSimulatingRun(cell) {
+    var config
+    try {
+        eval("config = " + cell.config)
+    }catch(error) {
+        salert(error)
+        return
+    }
+    var rt= (config && config.run) ? eval("rt="+config.run) : [2,5]
+    var r = getRandom( rt[0], rt[1])
+    console.log(`Simulation Running for ${cell.value} for ${r} secs`)
+
+    cell.state = "running"
+    updateCell(cell)
+    for ( var e in cell.edges) {
+        var E = cell.edges[e]
+        if ( E.source == cell) {
+            E.state = "running"    
+            updateCell(E)
+        }
+    }
+    setTimeout(endSimulatingRun, r * 1000, cell)
+}
+
+function simulateWF() {
+    START_SIM_TIME = new Date()
+    console.clear()
+    console.log("Simulation Running ")
+    for (var c in _graph.model.cells) {
+        var cell = _graph.model.cells[c]
+        cell.state = 'i'
+        updateCell(cell)
+    }
+    var started = 0
+    for (var c in _graph.model.cells) {
+        var cell = _graph.model.cells[c]
+        if ( cell.config && cell.config.trim()) {
+            try {
+                var ct
+                eval("ct = " + cell.config)
+                //console.log(cell, `${ct.type} `)
+                if (ct.type.toLowerCase() === "start"){
+                    startSimulatingRun(cell)
+                    started++
+                }
+            }catch(error) {
+                alert(error)
+                salert(error + "\n\n ERROR in configuration " + cell.config)
+            }
+        }
+        //console.log(c1, `${c1.style} ${c1.edge} ${c1.vertex} ${c1.value}`)
+    }
+    if ( started <= 0) {
+        salert("No process to start?? ", "btn-danger")
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function runWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    salert(responseTxt)
+    //var ds   = JSON.parse(responseTxt);
+}
+function runWF() {
+    var name = $('#wf_saveas').val()
+    callws('/wf/run_wf/',"", runWFCB, {name: name})
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function loadWF() {
@@ -198,14 +428,28 @@ let _MXCELL_SELECTED = null;
 function mxcell_Update() {
     var c = _MXCELL_SELECTED
     var v = $('#mxcell_value').val()
-    var t = $('#mxcell_config').text()
+    var t = $('#mxcell_config').val()
 
     c.value = v
-    c.text  = t
-    console.log(c)
+    c.config= t.trim()
+    try {
+        if (c.config){
+            var ct
+            eval("ct = " + c.config)
+        }
+    } catch(error) {
+        console.log(c, error)
+        salert(`ERROR PARSING: ${error}`)
+    }
+    //console.log(c)
     graph.refresh()
 }
-
+let _DEF_CONFIG = `{
+  type: 'na|process|start', // start
+  run :  '[10,20]',  // run time(secs)
+  nrun: 1         // can run ntimes
+}
+`
 function cellSelectMousehandler(obj,evt){
     //console.log("??", obj, evt)
     evt.consume()
@@ -216,7 +460,12 @@ function cellSelectMousehandler(obj,evt){
     console.log("CONSUMING ", c.value, c.id)
 
     $('#mxcell_value').val(c.value)
-    $('#mxcell_config').html(c.text|| "")
+
+    var cType = getCellType(c)
+    $('#mxcell_config').val(c.config)
+    if ( !c.edge && !c.config)
+        $('#mxcell_config').val(_DEF_CONFIG)
+
     _MXCELL_SELECTED = c
 }
 </script>
