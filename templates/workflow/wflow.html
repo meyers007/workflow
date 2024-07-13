@@ -52,18 +52,21 @@
 <!-- -----------------------------------------------------------------------------
     HTML
 ------------------------------------------------------------------------------- -->
-<div style="background-color: aliceblue; padding: 10px; border-bottom: 1px solid gray;">
-    <h5 style="display: inline;">  Create/Edit Workflows  ( NEW Experimental !!! ) <i class="fa fa-flask"></i>
-    </h5>
-    &nbsp;&nbsp;&nbsp;<button class="btn btn-success btn-sm" onclick="simulateWF()"  > Simulate WF <i class="fa fa-play"></i></button> 
-    &nbsp;&nbsp;&nbsp;<button class="btn btn-info btn-sm" onclick="runWF()"  > Run WF</button> 
-    &nbsp;<button class="btn btn-info btn-sm" onclick="saveWF()"  > Save WF As:</button> 
-    <div class="div1" style="display: inline-block;">
-        <input class="input1" id="wf_saveas" size=16 placeholder="save as" value="{{user.username}}.xml" required>
+<div class="row"  style="background-color: aliceblue; padding: 10px; border-bottom: 1px solid gray;">
+    <div class="col-md-12">
+        <h5 style="display: inline;">  Create/Edit Workflows  ( NEW Experimental !!! ) <i class="fa fa-flask"></i>
+        </h5>
+        &nbsp;&nbsp;&nbsp;<button class="btn btn-success btn-sm" onclick="simulateWF()"  > Simulate WF <i class="fa fa-play"></i></button> 
+        <button class="btn btn-info btn-sm" onclick="runWF()"  > Run WF</button> 
+        <button class="btn btn-info btn-sm" onclick="loadAWF()"  > Load WF</button> 
+        <button class="btn btn-info btn-sm" onclick="saveWF()"  > Save WF As:</button> 
+        <div class="div1" style="display: inline-block;">
+            <input class="input1" id="wf_saveas" size=16 placeholder="save as" value="{{user.username}}.xml" required>
+        </div>
+        &nbsp;<button class="btn btn-danger btn-sm" onclick="deleteWF()"  > Delete WF As:</button> 
     </div>
-    &nbsp;<button class="btn btn-danger btn-sm" onclick="deleteWF()"  > Delete WF As:</button> 
-
 </div>
+
 <div class="row" style ="width: 100%; height: 90%; padding: 0px;margin: auto;" >
     <div id=graph class="col-md-9">
     </div>
@@ -487,6 +490,7 @@ function loadAWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
     loadWFCfgXML(j.xml)
 }
 function loadAWF(name) {
+    name = name || $('#wf_saveas').val()
     console.log("Loading ", name)
     callws('/wf/get_wf/',"", loadAWFCB, {name: name})
 }
