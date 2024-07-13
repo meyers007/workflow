@@ -528,7 +528,16 @@ $(document).ready(function() {
         loadAllWFs()
     }
 })
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+window.onload=function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const wf = urlParams.get('wf', '')
 
+    if ( wf ) {
+        $('#wf_saveas').val(wf)
+        loadAWF(wf)
+    }
+} 
 
 </script>
 
