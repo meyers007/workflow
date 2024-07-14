@@ -145,17 +145,18 @@ function createGraph(id="graph", editor=null){
 };
 
 
+function _mxdelete(a,b,c) {
+    //console.log(a,b,c)
+    graph.removeCells();
+    return false
+}
 let keyHandler
 function addKeyHandler(graph) {
     // Stops editing on enter or escape keypress
     keyHandler = new mxKeyHandler(graph);
 
-    keyHandler.bindKey(46, (a,b,c)=>{ 
-        console.log(a,b,c)
-        graph.removeCells();
-        return false
-    
-    });
+    keyHandler.bindKey(8, _mxdelete)  // backspace
+    keyHandler.bindKey(46, _mxdelete)  // backspace
 
     mxEvent.addMouseWheelListener(function (evt, up){
         if (!mxEvent.isConsumed(evt))  {
@@ -187,9 +188,10 @@ function toolbar(){
     var rubberband = new mxRubberband(_graph);
     addKeyHandler(graph)
 
-    var addVertex = function(icon, w, h, style) {
+    var addVertex = function(icon, w, h, style, config="{}") {
         var vertex = new mxCell(null, new mxGeometry(0, 0, w, h), style);
         vertex.setVertex(true);
+        vertex.config = config
     
         addToolbarItem(_graph, toolbar, vertex, icon);
     };
@@ -201,7 +203,7 @@ function toolbar(){
     addVertex('/static/mxgraph-js/javascript/examples/editors/images/rhombus.gif',   40,  40, 'shape=rhombus');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/triangle.gif',  40,  40, 'shape=triangle');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/cylinder.gif',  40,  40, 'shape=cylinder');
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/actor.gif',     30,  40, 'shape=actor');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/actor.gif',     30,  40, 'shape=actor', config="{cmd: 'open http://www', run '[2,3]'}");
 }
 
 
@@ -216,7 +218,8 @@ function addToolbarItem(graph, toolbar, prototype, image) {
         var vertex = graph.getModel().cloneCell(prototype);
         vertex.geometry.x = pt.x;
         vertex.geometry.y = pt.y;
-        
+        vertex.config = prototype.config
+
         graph.setSelectionCells(graph.importCells([vertex], 0, 0, cell));
         console.log("Adding...")
     }
