@@ -10,6 +10,9 @@
     width: 32px;
     padding: 4px;;
 }
+.pagecontent {
+    overflow: hidden;
+}
 .tbdiv{
     padding: 10px;
     margin:  10px;
@@ -306,7 +309,7 @@ function endSimulatingRun(cell) {
         var E = cell.edges[e]
         E.state = ""    
         updateCell(E)
-        if ( E.target != cell){
+        if ( E.target  && E.target != cell){
             startSimulatingRun(E.target)
         }
     }
@@ -356,7 +359,7 @@ function simulateWF() {
                 var ct
                 eval("ct = " + cell.config)
                 //console.log(cell, `${ct.type} `)
-                if (ct.type.toLowerCase() === "start"){
+                if (ct.type && ct.type.toLowerCase() === "start"){
                     startSimulatingRun(cell)
                     started++
                 }
