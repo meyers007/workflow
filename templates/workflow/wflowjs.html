@@ -197,13 +197,56 @@ function toolbar(){
     };
         
     addVertex('/static/mxgraph-js/javascript/examples/editors/images/swimlane.gif',  120, 160, 'shape=swimlane;startSize=40;');
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rectangle.gif', 100, 40, '');
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rectangle.gif', 100, 40, 'shape=sada');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/rounded.gif',   100, 40, 'shape=rounded');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/ellipse.gif',   40,  40, 'shape=ellipse');
     addVertex('/static/mxgraph-js/javascript/examples/editors/images/rhombus.gif',   40,  40, 'shape=rhombus');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/triangle.gif',  40,  40, 'shape=triangle');
     //addVertex('/static/mxgraph-js/javascript/examples/editors/images/cylinder.gif',  40,  40, 'shape=cylinder');
     addVertex('/static/mxgraph-js/javascript/examples/editors/images/actor.gif',     30,  40, 'shape=actor', config="{cmd: 'open http://www', run '[2,3]'}");
+    addVertex('/static/mxgraph-js/javascript/examples/editors/images/symbols/message.png',     30,  40, 
+            'shape=Symbol;image=/static/mxgraph-js/javascript/examples/editors/images/symbols/message.png', 
+            config="{email: 'to: who@whodat.com'}");
+}
+
+function createEditor(config='/static/mxgraph-js/javascript/examples/editors/config/workfloweditor.xml'){
+    var editor = null;
+    console.log("Create editor...")
+    try{
+        mxObjectCodec.allowEval = true;
+        var node = mxUtils.load(config).getDocumentElement();
+        editor = new mxEditor(node);
+        mxObjectCodec.allowEval = false;
+        
+        // Adds active border for panning inside the container
+        editor.graph.createPanningManager = function() {
+            var pm = new mxPanningManager(this);
+            pm.border = 30;
+            return pm;
+        };
+        
+        editor.graph.allowAutoPanning = true;
+        editor.graph.timerAutoScroll = true;
+        
+        // Updates the window title after opening new files
+        var title = document.title;
+        var funct = function(sender) {
+            document.title = title + ' - ' + sender.getTitle();
+        };
+        
+        editor.addListener(mxEvent.OPEN, funct);
+        
+        // Prints the current root in the window title if the
+        // current root of the graph changes (drilling).
+        editor.addListener(mxEvent.ROOT, funct);
+        funct(editor);
+    }
+    catch (e) {
+        alert('Cannot load config: ' + e.message);
+        throw e; // for debugging
+    }
+
+    return editor;
 }
 
 
@@ -226,6 +269,7 @@ function addToolbarItem(graph, toolbar, prototype, image) {
     // Creates the image which is used as the drag icon (preview)
     var img = toolbar.addMode(null, image, funct, image, "toolbarimg");
     mxUtils.makeDraggable(img, graph, funct);
+    
 }
 </script>
 
