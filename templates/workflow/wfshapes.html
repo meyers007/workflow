@@ -1,0 +1,93 @@
+<script>
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+// Plus Shape
+function PlusShape()
+{
+    mxRectangleShape.call(this);
+};
+mxUtils.extend(PlusShape, mxRectangleShape);
+PlusShape.prototype.isHtmlAllowed = function()
+{
+    return false;
+};
+PlusShape.prototype.paintForeground = function(c, x, y, w, h)
+{
+    var border = Math.min(w / 5, h / 5) + 1;
+    
+    c.begin();
+    c.moveTo(x + w / 2, y + border);
+    c.lineTo(x + w / 2, y + h - border);
+    c.moveTo(x + border, y + h / 2);
+    c.lineTo(x + w - border, y + h / 2);
+    c.end();
+    c.stroke();
+    mxRectangleShape.prototype.paintForeground.apply(this, arguments);
+};
+
+//graph.getShape('plus') // Get the default box shape
+mxCellRenderer.registerShape('plus', PlusShape);
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+function BoxShape() {
+    mxCylinder.call(this);
+}
+
+mxUtils.extend(BoxShape, mxCylinder);
+
+BoxShape.prototype.redrawPath = function(gfx, state) {
+    // Your custom drawing logic here, using gfx.begin(), gfx.moveTo(), gfx.lineTo(), gfx.close(), gfx.fillAndStroke(), etc.
+    // The gfx parameter is an mxGraphicsContext, which you can use to draw the shape.
+    // The state parameter contains information about the cell's geometry, style, etc.
+    // Example: redrawPath to mimic mxCylinder with custom extrusion
+    this.redrawPath = function(gfx, state, isForeground) {
+        var geom = state.shape.geom;
+        if (!geom) {
+            return;
+        }
+        var w = geom.width;
+        var h = geom.height;
+        var x = state.x;
+        var y = state.y;
+
+        if (isForeground) {
+            gfx.begin();
+            gfx.moveTo(x, y + h);
+            gfx.lineTo(x + w, y + h);
+            gfx.lineTo(x + w, y);
+            gfx.moveTo(x + w, y);
+            gfx.lineTo(x, y);
+            gfx.close();
+            gfx.fillAndStroke();
+        } else {
+            gfx.begin();
+            gfx.moveTo(x + w, y);
+            gfx.lineTo(x + w, y + h);
+            gfx.lineTo(x, y + h);
+            gfx.lineTo(x, y);
+            gfx.close();
+            gfx.fillAndStroke();
+        }
+    };
+
+};
+
+//graph.getShape('box') // Get the default box shape
+mxCellRenderer.registerShape('box', BoxShape); // Register your custom shape
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+/*
+this.addEntry(this.getTagsForStencil('mxgraph.bpmn', 'timer_start', 'attached').join(' '), function()
+{
+    var cell = new mxCell('Process', new mxGeometry(0, 0, 120, 80), 'html=1;whiteSpace=wrap;rounded=1;dropTarget=0;');
+    cell.vertex = true;
+
+    var cell1 = new mxCell('', new mxGeometry(1, 1, 30, 30), 'shape=mxgraph.bpmn.timer_start;perimeter=ellipsePerimeter;html=1;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;');
+    cell1.vertex = true;
+    cell1.geometry.relative = true;
+    cell1.geometry.offset = new mxPoint(-40, -15);
+    cell.insert(cell1);
+
+    return sb.createVertexTemplateFromCells([cell], 120, 95, 'Attached Timer Event 1');
+}
+*/
+</script>

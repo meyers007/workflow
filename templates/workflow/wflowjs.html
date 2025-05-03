@@ -3,12 +3,19 @@
 
  * This assumes you have a service working
 ------------------------------------------------------------------------------- -->
+<style>
+.toolbarimg {
+    width: 34px;
+}
+
+</style>
 <script>
-var _model     = new mxGraphModel();
-var _container = null
-var _graph     = null
-var graph      = null
-var _parent    = null
+let _model     = new mxGraphModel();
+let _container = null
+let _graph     = null
+let graph      = null
+let _parent    = null
+let _undoManager = null
 /**
  * Creates and returns an empty graph inside the given container.
  */
@@ -74,7 +81,7 @@ function createGraph(id="graph", editor=null){
 
     style = [];
     style[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_SWIMLANE;
-    style[mxConstants.STYLE_PERIMETER] = mxPerimeter.RectanglePerimeter;
+    //style[mxConstants.STYLE_PERIMETER] = mxPerimeter.RectanglePerimeter;
     style[mxConstants.STYLE_STROKECOLOR] = '#a0a0a0';
     style[mxConstants.STYLE_FONTCOLOR] = '#606060';
     style[mxConstants.STYLE_FILLCOLOR] = '#E0E0DF';
@@ -141,8 +148,61 @@ function createGraph(id="graph", editor=null){
     graph.allowAutoPanning = true;
     graph.timerAutoScroll = true;
 
+    _undoManager = createUndoManager()
     return graph;
 };
+
+	// Keeps the selection in sync with the history
+function undoHandler(sender, evt)
+{
+    var cand = graph.getSelectionCellsForChanges(evt.getProperty('edit').changes, function(change)
+    {
+        // Only selects changes to the cell hierarchy
+        return !(change instanceof mxChildChange);
+    });
+    
+    if (cand.length > 0)
+    {
+        var model = graph.getModel();
+        var cells = [];
+        
+        for (var i = 0; i < cand.length; i++)
+        {
+            if (graph.view.getState(cand[i]) != null)
+            {
+                cells.push(cand[i]);
+            }
+        }
+        
+        graph.setSelectionCells(cells);
+    }
+};
+
+function createUndoManager()
+{
+	var graph = _graph;
+	var undoMgr = new mxUndoManager();
+
+	this.undoListener = function(sender, evt)
+	{
+		undoMgr.undoableEditHappened(evt.getProperty('edit'));
+	};
+	
+    // Installs the command history
+	var listener = mxUtils.bind(this, function(sender, evt)
+	{
+		this.undoListener.apply(this, arguments);
+	});
+	
+	graph.getModel().addListener(mxEvent.UNDO, listener);
+	graph.getView().addListener(mxEvent.UNDO, listener);
+	
+	undoMgr.addListener(mxEvent.UNDO, undoHandler);
+	undoMgr.addListener(mxEvent.REDO, undoHandler);
+
+	return undoMgr;
+};
+
 
 
 function _mxdelete(a,b,c) {
@@ -150,6 +210,12 @@ function _mxdelete(a,b,c) {
     graph.removeCells();
     return false
 }
+
+function _mxundo() {
+    _undoManager.undo()
+}
+
+
 let keyHandler
 function addKeyHandler(graph) {
     // Stops editing on enter or escape keypress
@@ -157,6 +223,7 @@ function addKeyHandler(graph) {
 
     keyHandler.bindKey(8, _mxdelete)  // backspace
     keyHandler.bindKey(46, _mxdelete)  // backspace
+    keyHandler.bindKey(90, _mxundo)  // backspace
 
     mxEvent.addMouseWheelListener(function (evt, up){
         if (!mxEvent.isConsumed(evt))  {
@@ -188,25 +255,102 @@ function toolbar(){
     var rubberband = new mxRubberband(_graph);
     addKeyHandler(graph)
 
-    var addVertex = function(icon, w, h, style, config="{}") {
-        var vertex = new mxCell(null, new mxGeometry(0, 0, w, h), style);
-        vertex.setVertex(true);
-        vertex.config = config
+    var addVertex = function(icon, w, h, style, config="{}", values={}) {
+        var prototype = new mxCell(null, new mxGeometry(0, 0, w, h), style);
+        prototype.setVertex(true);
+        prototype.config = config
+        for (var v in values) {
+            var vv= values[v]
+            prototype[v] = vv
+        }
     
-        addToolbarItem(_graph, toolbar, vertex, icon);
+        addToolbarItem(_graph, toolbar, prototype, icon);
+
     };
+
+
+
+    function addSubProcess() {
+        var icon = '/static/workflow/imgs/subprocess.png'
+        var cell = new mxCell('Sub-Process', new mxGeometry(0, 0, 120, 80), 'html=1;whiteSpace=wrap;rounded=1;dropTarget=0;');
+        cell.vertex = true;
         
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/swimlane.gif',  120, 160, 'shape=swimlane;startSize=40;');
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rectangle.gif', 100, 40, 'shape=sada');
-    //addVertex('/static/mxgraph-js/javascript/examples/editors/images/rounded.gif',   100, 40, 'shape=rounded');
-    //addVertex('/static/mxgraph-js/javascript/examples/editors/images/ellipse.gif',   40,  40, 'shape=ellipse');
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/rhombus.gif',   40,  40, 'shape=rhombus');
-    //addVertex('/static/mxgraph-js/javascript/examples/editors/images/triangle.gif',  40,  40, 'shape=triangle');
-    //addVertex('/static/mxgraph-js/javascript/examples/editors/images/cylinder.gif',  40,  40, 'shape=cylinder');
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/actor.gif',     30,  40, 'shape=actor', config="{cmd: 'open http://www', run '[2,3]'}");
-    addVertex('/static/mxgraph-js/javascript/examples/editors/images/symbols/message.png',     30,  40, 
-            'shape=Symbol;image=/static/mxgraph-js/javascript/examples/editors/images/symbols/message.png', 
-            config="{email: 'to: who@whodat.com'}");
+        var cell1 = new mxCell('', new mxGeometry(0.5, 1, 14, 14), 'html=1;shape=plus;outlineConnect=0;');
+        cell1.vertex = true;
+        cell1.geometry.relative = true;
+        cell1.geometry.offset = new mxPoint(-7, -14);
+        cell.insert(cell1);
+
+        cell.config = {type: 'subprocess' }
+        values = {style: "shape=subprocess" }
+        for (var v in values) {
+            var vv= values[v]
+            cell[v] = vv
+        }
+    
+        addToolbarItem(_graph, toolbar, cell, icon);
+    };
+    
+    /*
+    <mxCell id="15" value="Process" style="html=1;whiteSpace=wrap;rounded=1;dropTarget=0;align=center;verticalAlign=middle;" parent="2" vertex="1">
+      <mxGeometry x="520" y="80" width="120" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="16" value="" style="shape=mxgraph.bpmn.timer_start;perimeter=ellipsePerimeter;html=1;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;" parent="15" vertex="1">
+      <mxGeometry x="1" y="1" width="30" height="30" relative="1" as="geometry">
+        <mxPoint x="-40" y="-15" as="offset" />
+      </mxGeometry>
+    </mxCell>
+*/
+
+    function addScheduleProcess() {
+        var icon = '/static/workflow/imgs/schprocess.png'
+        var cell = new mxCell('Schedule-Process', new mxGeometry(0, 0, 120, 80), 'html=1;whiteSpace=wrap;rounded=1;dropTarget=0;');
+        cell.vertex = true;
+        
+        var cell1 = new mxCell('', new mxGeometry(1, 1, 30, 30), 'html=1;shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/Timer.png;outlineConnect=0;');
+        cell1.vertex = true;
+        cell1.geometry.relative = true;
+        cell1.geometry.offset = new mxPoint(-40, -15);
+        cell.insert(cell1);
+
+        cell.config = {type: 'scheduled_process' }
+        values = {style: "shape=scheduled_process" }
+        for (var v in values) {
+            var vv= values[v]
+            cell[v] = vv
+        }
+    
+        addToolbarItem(_graph, toolbar, cell, icon);
+    };
+
+    addVertex('/static/workflow/imgs/lane1.png',      120, 160, 'swimlane;startSize=40;');
+    addVertex('/static/workflow/imgs/process1.png',   100, 40, 'shape=rectagnle');
+    addVertex('/static/workflow/imgs/process2.png',   100, 40, 'shape=rounded');
+    addVertex('/static/workflow/imgs/oval.png',       40,  40, 'shape=ellipse');
+    addVertex('/static/workflow/imgs/decision.png',   40,  40, 'shape=rhombus');
+    addVertex('/static/workflow/imgs/triangle.png',   40,  40, 'shape=triangle');
+    addVertex('/static/workflow/imgs/db.png',         40,  40, 'shape=cylinder');
+    addVertex('/static/workflow/imgs/actor.png',      30,  40, 'shape=actor', config="{cmd: 'open http://www', run '[2,3]'}");
+
+    addVertex('/static/workflow/javascript/examples/editors/images/symbols/message.png',     30,  30, 
+            "shape=actor",
+            config={type: 'email', to: 'who@whodat.com'},
+            {style: "shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/message.png" }
+            );
+
+    addVertex('/static/workflow/imgs/start.png',     30,  30, 
+            'start', 
+            "{type: 'start'}", {value: "S"},
+            );
+
+	addVertex('/static/workflow/javascript/examples/editors/images/symbols/Timer.png', 30, 30,
+                "shape=actor", {type: 'schedule', crontab: '5 4 * * *' }, 
+                {style: "shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/Timer.png" })
+
+
+    addSubProcess()
+    addScheduleProcess()
+
 }
 
 function createEditor(config='/static/mxgraph-js/javascript/examples/editors/config/workfloweditor.xml'){
@@ -261,7 +405,9 @@ function addToolbarItem(graph, toolbar, prototype, image) {
         var vertex = graph.getModel().cloneCell(prototype);
         vertex.geometry.x = pt.x;
         vertex.geometry.y = pt.y;
-        vertex.config = prototype.config
+
+        var p = prototype.config
+        vertex.config = (typeof(p) === "string" )? p : JSON.stringify(p, null, 2)
 
         graph.setSelectionCells(graph.importCells([vertex], 0, 0, cell));
         console.log("Adding...")
@@ -269,7 +415,10 @@ function addToolbarItem(graph, toolbar, prototype, image) {
     // Creates the image which is used as the drag icon (preview)
     var img = toolbar.addMode(null, image, funct, image, "toolbarimg");
     mxUtils.makeDraggable(img, graph, funct);
-    
+ 
+    //console.log("image", image)
 }
+
+
 </script>
 

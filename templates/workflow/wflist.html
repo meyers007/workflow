@@ -1,0 +1,80 @@
+<style>
+.wflist_window {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 60%;
+    height:100%;
+    background: rgba(255, 255, 255, 0.99);
+    z-index: 100;
+    border: 1px solid #ececec;
+    display: none;
+    padding: 0px;
+    box-shadow: rgba(100, 100, 111, 0.4) 0px 7px 29px 0px; 
+}
+</style>
+        
+<div id="wflist_container" class="wflist_window" >
+<div class="fcontainer" >
+    <div class="header" style="padding: 10px; background-color: #eee;">
+        <button class=rbutt32 style="float: right;" 
+            onclick="$(this).parent().parent().parent().slideToggle()"><i class="fa fa-close" ></i>
+        </button>
+        <h3> Agentic Workflows </h3>
+    </div>
+    
+    <!-- ~~~~~~~~~~~ header ~~~~~~~~~~~~~~ -->
+
+    <div class="content" style="padding: 5px;overflow: auto;">
+        <div id="wflist" class="" style="background-color: aliceblue; height:240; overflow-y: auto;"></div>
+    </div>
+    <!-- ~~~~~~~~~~~ footer ~~~~~~~~~~~~~~ -->
+    <div class="footer" style="background-color: #fff; text-align: center; min-height: 80px;">
+        <hr/>
+        <button id="getList" class="btn btn-info btn-sm" type="button" onclick="getWFList()">getList</button>
+        <button class="btn btn-outline-info btn-sm" 
+            onclick="$(this).parent().parent().parent().slideToggle()"> &nbsp;<i class="fa fa-times"></i>&nbsp;
+        </button>
+    </div>
+</div>
+</div>
+
+<script>
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadAWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    var j = JSON.parse(responseTxt)
+    loadWFCfgXML(j.xml)
+}
+function loadAWF(name) {
+    name = name || $('#wf_saveas').val()
+    console.log("Loading ", name)
+    callws('/wf/get_wf/',"", loadAWFCB, {name: name})
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadAllWFsCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    var ds   = JSON.parse(responseTxt);
+    var vals = ds.values;
+    showDataTable(ds, 
+        {   div: '#wflist', id: 'wflistTable', 
+            maxitems: 5000, fillHeight: 0,
+            tableclass: "none", editable:0, allowDelete: 0, allowAdd: 0,
+            rowSelectCB: function(table, tr, indx, curSelected, vals) {
+                if ( curSelected < 0) {
+                    return
+                }
+                var name = tr.getElementsByTagName('td')[0].innerText
+                loadAWF(name)
+                $('#wf_saveas').val(name)
+            }})
+
+    $('#tabs').tabs( "option", "heightStyle", "fill" )
+}
+function loadAllWFs() {
+    callws('/wf/getall_wfs/',"", loadAllWFsCB, {})
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+$(document).ready(function() {
+})
+</script>

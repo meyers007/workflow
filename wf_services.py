@@ -9,9 +9,7 @@ import pandas as pd
 import xmltodict
 import colabexts.utils as colabexts_utils
 
-sys.path.append("../..")
-
-MBASE  = "/opt/data/data/workflows/"
+MBASE  = os.environ.get( "WF_BASE", os.path.expanduser("~/data/workflows/"))
 logger = logging.getLogger( "geoapp" )
 
 #---------------------------------------------------------------------------------    

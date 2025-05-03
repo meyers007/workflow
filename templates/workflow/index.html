@@ -1,0 +1,647 @@
+{% extends "common.html" %}
+{% block content %}
+<script type="text/javascript">mxBasePath = '/static/workflow/javascript/src'</script>
+<script type="text/javascript" src="/static/workflow/javascript/src/js/mxClient.js"></script>
+<!--
+<script type="text/javascript" src="/static/workflow/javascript/examples/grapheditor/www/js/Init.js"></script>
+<script type="text/javascript" src="/static/workflow/javascript/examples/grapheditor/www/js/Graph.js"></script>
+<script type="text/javascript" src="/static/workflow/javascript/examples/grapheditor/www/js/Shapes.js"></script>
+-->
+<!-- -----------------------------------------------------------------------------
+    STYLE
+------------------------------------------------------------------------------- -->
+<style>
+.split {
+    display: flex;
+    flex-direction: row;
+}    
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    cursor: col-resize;
+}
+
+.dflex {
+    border-color: #e0e0e0;
+    flex: 1 1 auto;
+    display: flex;  flex-flow: column;
+}
+
+.toolbarimg{
+    width: 32px;
+    padding: 4px;;
+}
+.pagecontent {
+    overflow: hidden;
+}
+.tbdiv{
+    padding: 10px;
+    margin:  10px;
+    border: 1px solid black;
+    background-color: white;
+    border-radius: 6px;;
+    text-align: center;
+}
+.configDiv{
+    padding: 2px;
+    margin:  0px;
+    border: 1px solid black;
+    background-color:aliceblue;
+    border-radius: 3px;;
+    text-align: left;
+    font-size: smaller;
+    min-height:200px;
+    width: 100%;
+    font-family: 'Courier New', Courier, monospace;
+}
+.flow {
+    stroke-dasharray: 8;
+    animation: dash 0.5s linear;
+    animation-iteration-count: infinite;
+    color: firebrick;
+
+}
+@keyframes dash {
+    to {
+    stroke-dashoffset: -16;
+    }
+}
+
+.simstatus{
+    white-space:nowrap;
+    background-color: aliceblue; 
+    border-top: 1px solid black;
+}
+.contextdivButt {
+    position: absolute;
+    top: 1px;
+    left:0;
+}
+.btn-sm {
+    font-size: smaller;
+}
+.graph-div{
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2QwZDBkMCIgb3BhY2l0eT0iMC4yIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZDBkMGQwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')
+}
+</style> 
+<!-- -----------------------------------------------------------------------------
+    HTML
+------------------------------------------------------------------------------- -->
+<script src="/static/node_modules/split.js/dist/split.min.js" ></script>
+
+{% include "workflow/wfshapes.html" %}
+{% include "workflow/wflist.html" %}
+<button href=# class="rbutt32 contextdivButt" onclick="toggleSplit(); this.blur()"><i class="fa fa-bars"></i> </button>
+<div class="fcontainer" style="height: calc(100vh - 50px);font-family: 'Google Sans', Roboto, Arial, sans-serif;">
+    <div class="header1">
+        {% include "workflow/top.html" %}
+    </div>
+    <div class="split content" style="flex: 1 1 auto; ">
+        <div id="one" class="dflex" style="padding: 0 7px 0 7px; min-width: 1px; overflow: auto;background-color: rgb(240, 244, 249);">
+
+            <div id="toolbar" class="tbdiv"></div>
+
+            <hr/>
+            <b>Configuration:</b>
+            <input class="input1"  onblur="mxcell_Update()" id="mxcell_value" >  
+            <textarea   class="configDiv" onblur="mxcell_Update()" id="mxcell_config" ></textarea>
+
+            <br/><br/>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="simulateWF()"  > Sim<i class="fa fa-play"></i></button> 
+                <button class="btn btn-outline-secondary btn-sm" onclick="runWF()"  > Run</button> 
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadAWF()"> Load</button> <br/>
+                <button class="btn btn-outline-secondary btn-sm" onclick="saveWF()" > Save As:</button> 
+                <div class="div1" style="display: inline-block;">
+                    <input class="input1" id="wf_saveas" size=16 placeholder="save as" value="{{user.username}}_n.xml" required>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="deleteWF()"  > Delete </button> 
+            </div>            
+            <div>
+                <button class="btn btn-outline-secondary btn-sm sbutt"  onclick="_graph.zoomIn()"    ><i class="fa fa-search-plus"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"  onclick="_graph.zoomOut()"   ><i class="fa fa-search-minus"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"   data-toggle="tooltip" title="fit" onclick="_graph.fit();"      ><i class="fa fa-eye"></i></button> 
+                <button class="btn btn-outline-secondary  btn-sm"  data-toggle="tooltip" title="Actual size"  onclick="graph.zoomActual()" ><i class="fa fa-eye"></i></button> 
+                <!-- <button class="btn btn-primary btn-sm"  onclick="mxcell_Update()"  >Update Item</button>  -->
+            </div>
+
+            <div id="status" class="simstatus" >Status</div>
+
+        </div>
+
+        <div id="response" style="height: 100%;overflow: auto;"> 
+            <section id="content" style="font-size:clamp(2.5rem, 2vw, 3rem);" >
+                <div id=graph class="col-md12 graph-div" ></div>
+            </section>
+        </div>
+    </div>
+
+
+    <div class="footer row" style="background-color: transparent; border-top: 2px solid gray;width: calc(100vw - 0px);">
+        <div class="col-sm-9">
+            <textarea id="prompt"
+                style="width: 100%; border: 0px ; box-shadow: rgba(100, 100, 111, 0.4) 0px 7px 29px 0px; padding: 6; border-radius: 20px;"
+                rows=2 onkeypress="handle(event)" placeholder="What do want to know today" 
+                onfocus="$(this).autocomplete('search')"></textarea>
+
+
+
+    
+        </div>
+        <div class="col-sm-3" style="align-content: center;">
+            <div style="padding-bottom: 2px; font-size: small;">
+                <span class="sbutt"> shift </span>+<span class="sbutt">enter</span> to send </span>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" data-toggle="tooltip" title="Send" onclick="runClick()">
+                <i class="fa fa-paper-plane"></i></button>
+            <button class="btn btn-outline-secondary btn-sm" data-toggle="tooltip" title="Clear"
+                onclick="clearLLMChat()">
+                <i class="fa fa-eraser"></i></button>
+            <button class="btn btn-outline-secondary btn-sm" data-toggle="tooltip" title="Settings"
+                onclick="$('#rag_settings').slideToggle();$(this).blur()">
+                <i class="fa fa-gear"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" data-toggle="tooltip" title="Context"
+                onclick="$('#wflist_container').slideToggle();$(this).blur()">
+                <i class="fa fa-file"></i>
+            </button>
+
+
+    
+        </div>
+    </div>
+</div>
+
+{% include "workflow/wflowjs.html" %}
+
+<!-- -----------------------------------------------------------------------------
+    SCRIPT
+
+ * This assumes you have a service working
+------------------------------------------------------------------------------- -->
+<script>
+
+var sizes = localStorage.getItem('split-sizes2')
+if (sizes) {
+    sizes = JSON.parse(sizes)
+} else {
+    sizes = [35, 65]
+}
+
+let split=Split(['#one', '#response'], {
+    sizes : sizes,
+    minSize: [10, 100],
+    onDragEnd: function (sizes) {
+        localStorage.setItem('split-sizes2', JSON.stringify(sizes))
+    },
+})
+
+function setsplit(sizes=[25,90]) {
+    split.setSizes(sizes)
+}
+
+function toggleSplit() {
+    var s = split.getSizes()
+    if (s[0] > 2 ) {
+        $('#one').hide()
+        split.setSizes([0,99])
+    } else {
+        $('#one').show()
+        if (sizes[0] < 5) {
+            split.setSizes([30,70])
+        } else {
+            split.setSizes(sizes)
+        }
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+var _overlay_run = new mxCellOverlay(new mxImage('/static/imgs/gear.gif', 24, 24),'?');
+var _overlay_end = new mxCellOverlay(new mxImage('/static/imgs/check.png', 24, 24),'?');
+var _overlay_err = new mxCellOverlay(new mxImage('/static/imgs/error.png', 24, 24),'?');
+
+function createOverlay(state){
+    var html = (state.startsWith("r")) ? "<h1>R<h1>": "FINI";
+
+    var overlay = new mxCellOverlay(_overlay, state);
+
+    // overlay.addListener(mxEvent.CLICK, function(sender, evt){
+    //     mxUtils.alert(tooltip + '\nLast update: ' + new Date());
+    // });    
+    return overlay;
+};
+/*
+function setCellState(cell=null, id=null, state="running") {
+    cell = (!cell) ? _model.getCell(id): cell
+    if (!cell ) {
+        console.log("Cell not found: ", id)
+        return
+    }
+    state= (state) ? state: cell.state || ""
+
+    var s = state[0].toLowerCase()
+    console.log("Cell State: ", s)
+    switch (s) {
+        case "i": //init
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            graph.removeCellOverlays(cell);
+            break
+        case "r": //Running
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#f8cecc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_run);
+            break
+        case "w": //waiting
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff2cc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_err);
+            break
+        case "s": // Completed Succefully
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        case "e": // Completed with Errors
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        default:
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            break
+    }
+}
+function simulateWFOLD() {
+    var i = 0
+    for (var c in _graph.model.cells) {
+        var c1 = _graph.model.cells[c]
+        c1.state = 'i'
+        console.log("Running ", c1)
+        setTimeout(setCellState, i*2000, c1)
+        setTimeout(setCellState, i*4000, c1, null, (i%2 ==0) ? "completed": "w")
+        i++
+    }
+}
+*/
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+function getCellType(cell) {
+    if ( cell.edge){
+        return "edge"
+    }
+    if ( !cell.style) {
+        return "process"
+    }else if ( cell.style.includes("swimlane")){
+        return "swimlane"
+    }else if ( cell.style.includes("ellipse")){
+        return "start/stop"
+    }else if ( cell.style.includes("actor")){
+        return "actor"
+    }else if ( cell.style.includes("rhombus")){
+        return "decision"
+    }
+    return "process"
+}
+function drawEdge(e) {
+    var state = graph.view.getState(e);
+    var rstate= e.state || ""
+
+    if ( rstate.startsWith('r')) {
+        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, 3, [e]);
+        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'firebrick', [e]);
+        //state.shape.node.getElementsByTagName('path')[0].removeAttribute('visibility');
+        //state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke-width', '6');
+        //state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke', 'lightGray');
+        state.shape.node.getElementsByTagName('path')[1].setAttribute('class', 'flow');
+
+    } else {
+        var style = graph.getStylesheet().getDefaultEdgeStyle();
+        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, style[mxConstants.STYLE_STROKEWIDTH], [e]);
+        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, style[mxConstants.STYLE_STROKECOLOR], [e]);
+
+        state.shape.node.getElementsByTagName('path')[1].setAttribute('class', '');
+    }
+}
+function drawProcess(cell) {
+    if ( !cell.state) {
+        cell.state = "init"
+    }
+
+    var s = cell.state[0].toLowerCase()
+    //console.log("Cell State: ", s)
+    switch (s) {
+        case "r": //Running
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#f8cecc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_run);
+            break
+        case "w": //waiting
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff2cc', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_err);
+            break
+        case "s": // Completed Succefully
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        case "e": // Completed with Errors
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#d4e1f5', [cell]);
+            graph.removeCellOverlays(cell);
+            graph.addCellOverlay(cell, _overlay_end);
+            break
+        default:
+            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, '#fff', [cell]);
+            graph.removeCellOverlays(cell);
+            break
+    }
+}
+function updateCell(cell=null) {
+    var cType = getCellType(cell)
+
+    switch (cType[0]) {
+        case "e": //edge
+            drawEdge(cell)
+            break
+        case "d": //decision
+        case "w": //swimlane
+            break
+        default:
+            drawProcess(cell)
+            break
+    }
+}
+
+function getRandom(min=1, max=10) {
+    return Math.round( (Math.random() * (max - min) + min) );
+}
+
+let START_SIM_TIME = new Date()
+let CURR_SIM_TIME = new Date()
+
+function getTimeDiff(s1=START_SIM_TIME, s2=CURR_SIM_TIME){
+    var delta = Math.abs(s2 - s1) / 1000;
+
+    // calculate (and subtract) whole days
+    var days = Math.floor(delta / 86400);
+    delta -= days * 86400;
+
+    // calculate (and subtract) whole hours
+    var hours = Math.floor(delta / 3600) % 24;
+    delta -= hours * 3600;
+
+    // calculate (and subtract) whole minutes
+    var minutes = Math.floor(delta / 60) % 60;
+    delta -= minutes * 60;
+
+    // what's left is seconds
+    var seconds = delta % 60;  // in theory the mod
+
+    return `${hours} hours, ${minutes} mins,  ${seconds} seconds`
+}
+
+function endSimulatingRun(cell) {
+    var config
+    try {
+        eval("config = " + cell.config)
+    }catch(error) {
+        salert(error)
+        return
+    }
+    cell.state = "success"
+    updateCell(cell)
+    for ( var e in cell.edges) {
+        var E = cell.edges[e]
+        E.state = ""    
+        updateCell(E)
+        if ( E.target  && E.target != cell){
+            startSimulatingRun(E.target)
+        }
+    }
+    // tell the other end of the edge to start running & I am done
+    CURR_SIM_TIME = new Date();
+    $('#status').html("<b>Simulation Running for : </b>" + getTimeDiff() )
+}
+
+function startSimulatingRun(cell) {
+    var config
+    try {
+        eval("config = " + cell.config)
+    }catch(error) {
+        salert(error)
+        return
+    }
+    var rt= (config && config.run) ? eval("rt="+config.run) : [2,5]
+    var r = getRandom( rt[0], rt[1])
+    console.log(`Simulation Running for ${cell.value} for ${r} secs`)
+
+    cell.state = "running"
+    updateCell(cell)
+    for ( var e in cell.edges) {
+        var E = cell.edges[e]
+        if ( E.source == cell) {
+            E.state = "running"    
+            updateCell(E)
+        }
+    }
+    setTimeout(endSimulatingRun, r * 1000, cell)
+}
+
+function simulateWF() {
+    START_SIM_TIME = new Date()
+    console.clear()
+    console.log("Simulation Running ")
+    for (var c in _graph.model.cells) {
+        var cell = _graph.model.cells[c]
+        cell.state = 'i'
+        updateCell(cell)
+    }
+    var started = 0
+    for (var c in _graph.model.cells) {
+        var cell = _graph.model.cells[c]
+        if ( cell.config && cell.config.trim()) {
+            try {
+                var ct
+                eval("ct = " + cell.config)
+                //console.log(cell, `${ct.type} `)
+                if (ct.type && ct.type.toLowerCase() === "start"){
+                    startSimulatingRun(cell)
+                    started++
+                }
+            }catch(error) {
+                alert(error)
+                salert(error + "\n\n ERROR in configuration " + cell.config)
+            }
+        }
+        //console.log(c1, `${c1.style} ${c1.edge} ${c1.vertex} ${c1.value}`)
+    }
+    if ( started <= 0) {
+        salert("No process to start?? ", "btn-danger")
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function runWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    salert(responseTxt)
+    //var ds   = JSON.parse(responseTxt);
+}
+function runWF() {
+    var name = $('#wf_saveas').val()
+    callws('/wf/run_wf/',"", runWFCB, {name: name})
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadWF() {
+    //var vertexStyle = _graph.getStylesheet().getDefaultVertexStyle();
+    //vertexStyle[mxConstants.ROUNDED] = true;
+    _model.beginUpdate();
+    try
+    {
+        var v1 = _graph.insertVertex(_parent, null, "Start", 20, 20, 80, 40)
+        var v2 = _graph.insertVertex(_parent, null, 'Process Data!', 170, 200, 120, 40);
+        var v3 = _graph.insertVertex(_parent, null, 'Build Model!', 400, 20, 120, 40);
+        var v4 = _graph.insertVertex(_parent, null, 'Send Email!', 550, 200, 120, 40);
+        var e1 = _graph.insertEdge(_parent, null, '', v1, v2);
+        var e1 = _graph.insertEdge(_parent, null, '', v3, v4);
+        var e1 = _graph.insertEdge(_parent, null, '', v1, v4);
+    }
+    finally{
+        _model.endUpdate();
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+async function loadWFCfgXML(xml= null) {
+    if ( !xml)
+        return
+
+    graph.selectCells('*')
+    await graph.removeCells()
+        
+    var doc = mxUtils.parseXml(xml);
+    var codec = new mxCodec(doc);
+    codec.decode(doc.documentElement, graph.getModel());
+}
+
+function saveWF() {
+    var encoder = new mxCodec();
+    var node = encoder.encode(graph.getModel());
+    var xml = mxUtils.getPrettyXml(node)
+
+    var name = $('#wf_saveas').val()
+    var ctx = { name: name, jsn: "", xml: xml }
+    callws('/wf/save_wf/',"", loadAllWFs, ctx)
+
+    return xml
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+let _MXCELL_SELECTED = null;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function mxcell_Update() {
+    var c = _MXCELL_SELECTED
+    var v = $('#mxcell_value').val()
+    var t = $('#mxcell_config').val()
+
+    c.value = v
+    c.config= t.trim()
+    try {
+        if (c.config){
+            var ct
+            eval("ct = " + c.config)
+        }
+    } catch(error) {
+        console.log(c, error)
+        salert(`ERROR PARSING: ${error}`)
+    }
+    //console.log(c)
+    graph.refresh()
+}
+let _DEF_CONFIG = `{
+  type: 'na|process|start', // start
+  run :  '[2,6]',  // run time(secs)
+  nrun: 1         // can run ntimes
+}
+`
+
+//let OBJ =null
+function cellSelectMousehandler(obj,evt){
+    //console.log("??", obj, evt)
+    evt.consume()
+    if ( !obj || evt.name !== "change" || !obj.cells || obj.cells.length <=0 || obj.cells.length > 1) {
+        return 
+    }
+    //OBJ = obj
+    var c = obj.cells[0]
+    //console.log("CONSUMING ", c.value, c.id)
+
+    $('#mxcell_value').val(c.value)
+
+    var cType = getCellType(c)
+    $('#mxcell_config').val(c.config)
+    if ( !c.edge && !c.config)
+        $('#mxcell_config').val(_DEF_CONFIG)
+
+    _MXCELL_SELECTED = c
+}
+</script>
+
+
+<script>
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function deleteWFCB(responseTxt, statusTxt, xhr, ctx={}, formData={}){
+    loadAllWFs()
+}
+function deleteWF() {
+    var name = $('#wf_saveas').val()
+    console.log("Deleting ", name)
+    callws('/wf/delete_wf/',"", deleteWFCB, {name: name})
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+$(document).ready(function() {
+    if (!mxClient.isBrowserSupported()) {
+        mxUtils.error('Browser is not supported!', 200, false);
+    } else {
+        createGraph()
+        loadWF()
+        toolbar()
+        graph.getSelectionModel().addListener(mxEvent.CHANGE, cellSelectMousehandler)
+        loadAllWFs()
+    }
+})
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+window.onload=function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const wf = urlParams.get('wf', '')
+
+    if ( wf ) {
+        $('#wf_saveas').val(wf)
+        loadAWF(wf)
+    }
+} 
+let _SEARCH_LIST = [
+        "What is the rotation axis of the solar arrays?",
+        "What is the specific impulse of the LAE?",
+        "What mode is used for Stationkeeping maneuvers?",
+]    
+function getACList(term, params) {
+    //_SEARCH_LIST.unshift(term)
+    let s = new Set(_SEARCH_LIST);
+    _SEARCH_LIST = [...s]
+
+    //console.log(term, params)
+
+    // Lets just keep the top 30 elements only
+    _SEARCH_LIST = _SEARCH_LIST.slice(0, 30);
+    var t= term.toLowerCase()
+    var ret = _SEARCH_LIST.filter(function (str) { return str.toLowerCase().indexOf(t) !== -1; });
+
+    return ret
+}
+geoutils_Autocomplete('#prompt', getACList, {position: "top"})    
+
+</script>
+
+{% endblock %}

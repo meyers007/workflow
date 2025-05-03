@@ -1,0 +1,9 @@
+#How to set up the project
+
+* clone this repo 
+* clone mxgraph-js same level as the above repo
+    git clone https://github.com/jgraph/mxgraph-js.git 
+* if you have mxgraph-js in some other place - adjust the links in static folder
+
+
+Add it as application just link anything else.
