@@ -307,7 +307,7 @@ function toolbar(){
         var cell = new mxCell('Schedule-Process', new mxGeometry(0, 0, 120, 80), 'html=1;whiteSpace=wrap;rounded=1;dropTarget=0;');
         cell.vertex = true;
         
-        var cell1 = new mxCell('', new mxGeometry(1, 1, 30, 30), 'html=1;shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/Timer.png;outlineConnect=0;');
+        var cell1 = new mxCell('', new mxGeometry(1, 1, 30, 30), 'html=1;shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/timer.png;outlineConnect=0;');
         cell1.vertex = true;
         cell1.geometry.relative = true;
         cell1.geometry.offset = new mxPoint(-40, -15);
@@ -343,9 +343,9 @@ function toolbar(){
             "{type: 'start'}", {value: "S"},
             );
 
-	addVertex('/static/workflow/javascript/examples/editors/images/symbols/Timer.png', 30, 30,
+	addVertex('/static/workflow/javascript/examples/editors/images/symbols/timer.png', 30, 30,
                 "shape=actor", {type: 'schedule', crontab: '5 4 * * *' }, 
-                {style: "shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/Timer.png" })
+                {style: "shape=image;image=/static/workflow/javascript/examples/editors/images/symbols/timer.png" })
 
 
     addSubProcess()
